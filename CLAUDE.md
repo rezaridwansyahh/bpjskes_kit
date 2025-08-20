@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a BPJSTK (BPJS Tenaga Kerja) API client implementation for integrating with BPJS Kesehatan's ASN (Aparatur Sipil Negara) participant data services. The project handles encrypted API responses that require AES-256 decryption followed by LZ-String decompression.
 
+**Available implementations:**
+- **Node.js** (Recommended): `bpjstk-client.js` - Full-featured with excellent error handling
+- **PHP**: `BPJSTK_complete.php` - Basic implementation with LZ-String issues
+
 ## Key Architecture Components
 
 ### Response Processing Flow
@@ -28,55 +32,90 @@ This is a BPJSTK (BPJS Tenaga Kerja) API client implementation for integrating w
 
 ## Common Development Tasks
 
-### Running PHP Scripts
+### Node.js (Recommended)
 ```bash
-php filename.php
+# Install dependencies
+npm install
+
+# Run examples
+node example.js
+
+# Run tests
+npm test
 ```
 
-### Testing API Integration
+### PHP (Legacy)
 ```bash
-php BPJSTK_final_working.php
-```
-
-### Installing Dependencies
-```bash
+# Install dependencies
 composer install
-```
 
-### Testing Different Decompression Methods
-```bash
-php test_decompression.php
+# Test API integration
+php BPJSTK_complete.php
+
+# Run usage example
+php example_usage.php
 ```
 
 ## File Structure
 
-- `BPJSTK_final_working.php` - Main working implementation with complete flow
+### Node.js Implementation (Recommended)
+- `bpjstk-client.js` - Main Node.js API client implementation
+- `example.js` - Usage examples and performance tests
+- `package.json` - Node.js dependencies and scripts
+- `README.md` - Comprehensive documentation
+- `decrypted_data.txt` - Sample decrypted data for analysis
+
+### PHP Implementation (Legacy)  
+- `BPJSTK_complete.php` - PHP API client with error handling
+- `example_usage.php` - PHP usage examples
 - `bpjs_tk_kit/decrypt.php` - Basic decryption utility functions
+- `composer.json` - PHP dependencies (3 LZ-String implementations)
+- `vendor/` - Composer dependencies
+
+### Documentation
 - `docs.txt` - API specification and sample responses
-- `composer.json` - Dependencies (3 LZ-String PHP implementations)
-- `test_*.php` - Various testing and debugging scripts
-- `vendor/` - Composer dependencies for LZ-String libraries
+- `CLAUDE.md` - Development guidance for Claude Code
 
 ## Key Classes and Methods
 
-### BPJSTKClient (BPJSTK_final_working.php)
-- `makeRequest($endpoint, $method, $data)` - Main API request handler
-- `getPesertaASN($page, $limit, $unorid)` - Get ASN participant data
+### BPJSTKClient (Node.js - Recommended)
+- `getASNData(page, limit, unorid)` - Clean JSON response for ASN data
+- `getPesertaASN(page, limit, unorid, debug)` - Detailed response with debug info
+- `makeRequest(endpoint, method, data, debug)` - Core API request handler
+- `generateSignature(timestamp)` - HMAC-SHA256 signature generation
+- `generateEncryptionKey(timestamp)` - AES encryption key creation
+- `decryptResponse(encryptedData, key)` - AES-256 decryption (ECB/CBC)
+- `decompressLZString(input)` - LZ-String decompression with fallbacks
+
+### BPJSTKClient (PHP - Legacy)
+- `makeRequest($endpoint, $method, $data, $debug)` - Main API request handler
+- `getPesertaASN($page, $limit, $unorid, $debug)` - Get ASN participant data
+- `getASNData($page, $limit, $unorid)` - Clean JSON response helper
 - `generateSignature($timestamp)` - Generate HMAC-SHA256 signature
 - `generateEncryptionKey($timestamp)` - Create AES encryption key
 - `decryptResponse($encryptedData, $key)` - AES decryption with fallback modes
-- `decompressLZString($input)` - LZ-String decompression
 
 ## Dependencies
 
-The project includes three LZ-String PHP implementations for compatibility:
-- `nullpunkt/lz-string-php`
-- `jezevec10/lz-string-php`  
-- `netom/lz-string-php`
+### Node.js (Recommended)
+- `lz-string`: Native JavaScript LZ-String library
+- `axios`: HTTP client for API requests  
+- `crypto`: Built-in Node.js cryptography
+
+### PHP (Legacy)
+- `nullpunkt/lz-string-php`: Primary LZ-String implementation
+- `jezevec10/lz-string-php`: Alternative implementation
+- `netom/lz-string-php`: Backup implementation
 
 ## Development Environment
 
-- PHP 7.4.33
+### Node.js
+- Node.js 14.0.0 or higher
+- npm for package management
+- Built-in crypto module for encryption
+
+### PHP (Legacy)
+- PHP 7.4.33 or higher
 - MAMP/XAMPP local server environment
 - cURL extension required for API calls
 - OpenSSL extension required for encryption
