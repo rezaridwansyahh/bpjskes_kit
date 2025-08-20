@@ -34,20 +34,16 @@ Thumbs.db
 debug_*.php
 test_*.php
 
-# Data and output files (exclude docs.txt which is documentation)
+# Data and output files
 *.log
-lz_string_data.txt
 *_data.txt
 *_output.txt
-# Keep decrypted_data.txt as it's useful for analysis
 
 # HTML test files
 *.html
 
-# JavaScript files (unless part of main project)
+# JavaScript files
 *.js
-!bpjstk-client.js
-!example.js
 
 # Backup and temporary files
 *_backup.php
@@ -58,19 +54,3 @@ lz_string_data.txt
 
 # MAMP/XAMPP specific
 .htaccess
-
-# Keep main implementation and core files
-# Exclude test and debug versions but keep BPJSTK_complete.php as main implementation
-BPJSTK_debug.php
-BPJSTK_fixed.php
-BPJSTK_new.php
-BPJSTK_success.php
-BPJSTK_working.php
-
-# Keep these files:
-# BPJSTK_complete.php (main implementation) 
-# BPJSTK.php (original version)
-# bpjs_tk_kit/ (utility functions)
-# composer.json (dependencies)
-# docs.txt (API documentation)
-# CLAUDE.md (project documentation)

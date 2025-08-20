@@ -6,9 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a BPJSTK (BPJS Tenaga Kerja) API client implementation for integrating with BPJS Kesehatan's ASN (Aparatur Sipil Negara) participant data services. The project handles encrypted API responses that require AES-256 decryption followed by LZ-String decompression.
 
-**Available implementations:**
-- **Node.js** (Recommended): `bpjstk-client.js` - Full-featured with excellent error handling
-- **PHP**: `BPJSTK_complete.php` - Basic implementation with LZ-String issues
+**Current implementation:**
+- **PHP**: `bpjstk_clean.php` - Production-ready implementation using partner's proven bpjs_tk_kit
 
 ## Key Architecture Components
 
@@ -32,93 +31,61 @@ This is a BPJSTK (BPJS Tenaga Kerja) API client implementation for integrating w
 
 ## Common Development Tasks
 
-### Node.js (Recommended)
+### PHP Implementation
 ```bash
-# Install dependencies
-npm install
-
-# Run examples
-node example.js
-
-# Run tests
-npm test
-```
-
-### PHP (Legacy)
-```bash
-# Install dependencies
+# Install dependencies (already included in bpjs_tk_kit/)
 composer install
 
-# Test API integration
-php BPJSTK_complete.php
+# Run the clean production client
+php bpjstk_clean.php
 
-# Run usage example
-php example_usage.php
+# Test API integration
+php -S localhost:8000 bpjstk_clean.php
 ```
 
 ## File Structure
 
-### Node.js Implementation (Recommended)
-- `bpjstk-client.js` - Main Node.js API client implementation
-- `example.js` - Usage examples and performance tests
-- `package.json` - Node.js dependencies and scripts
-- `README.md` - Comprehensive documentation
-- `decrypted_data.txt` - Sample decrypted data for analysis
-
-### PHP Implementation (Legacy)  
-- `BPJSTK_complete.php` - PHP API client with error handling
-- `example_usage.php` - PHP usage examples
-- `bpjs_tk_kit/decrypt.php` - Basic decryption utility functions
-- `composer.json` - PHP dependencies (3 LZ-String implementations)
+### Core Implementation
+- `bpjstk_clean.php` - Production-ready PHP API client with clean output
+- `bpjs_tk_kit/` - Partner's working implementation toolkit
+  - `decrypt.php` - Working AES decryption functions
+  - `vendor/nullpunkt/lz-string-php/` - Working LZ-String library
+- `composer.json` - PHP dependencies
 - `vendor/` - Composer dependencies
 
-### Documentation
+### Documentation & Reference
 - `docs.txt` - API specification and sample responses
 - `CLAUDE.md` - Development guidance for Claude Code
+- `decrypted_data.txt` - Sample decrypted data for analysis
 
 ## Key Classes and Methods
 
-### BPJSTKClient (Node.js - Recommended)
-- `getASNData(page, limit, unorid)` - Clean JSON response for ASN data
-- `getPesertaASN(page, limit, unorid, debug)` - Detailed response with debug info
-- `makeRequest(endpoint, method, data, debug)` - Core API request handler
-- `generateSignature(timestamp)` - HMAC-SHA256 signature generation
-- `generateEncryptionKey(timestamp)` - AES encryption key creation
-- `decryptResponse(encryptedData, key)` - AES-256 decryption (ECB/CBC)
-- `decompressLZString(input)` - LZ-String decompression with fallbacks
-
-### BPJSTKClient (PHP - Legacy)
-- `makeRequest($endpoint, $method, $data, $debug)` - Main API request handler
-- `getPesertaASN($page, $limit, $unorid, $debug)` - Get ASN participant data
-- `getASNData($page, $limit, $unorid)` - Clean JSON response helper
-- `generateSignature($timestamp)` - Generate HMAC-SHA256 signature
-- `generateEncryptionKey($timestamp)` - Create AES encryption key
-- `decryptResponse($encryptedData, $key)` - AES decryption with fallback modes
+### BPJSTKClient (PHP)
+- `makeAPICall($endpoint)` - Core API request handler with full processing
+- `getPesertaASN($page, $limit, $unorid)` - Get ASN participant data with metadata
+- `getASNRecords($page, $limit, $unorid)` - Get clean array of ASN records
+- `generateSignature($timestamp)` - HMAC-SHA256 signature generation
+- `generateEncryptionKey($timestamp)` - AES encryption key creation (partner's method)
+- `stringDecrypt($string, $secret_key)` - AES-256-CBC decryption (partner's implementation)
+- `decompress($string)` - LZ-String decompression using working nullpunkt library
 
 ## Dependencies
 
-### Node.js (Recommended)
-- `lz-string`: Native JavaScript LZ-String library
-- `axios`: HTTP client for API requests  
-- `crypto`: Built-in Node.js cryptography
-
-### PHP (Legacy)
-- `nullpunkt/lz-string-php`: Primary LZ-String implementation
-- `jezevec10/lz-string-php`: Alternative implementation
-- `netom/lz-string-php`: Backup implementation
+### PHP Implementation
+- `nullpunkt/lz-string-php`: Working LZ-String implementation (from partner's bpjs_tk_kit)
+- `jezevec10/lz-string-php`: Additional LZ-String implementation
+- `netom/lz-string-php`: Backup LZ-String implementation
+- cURL: For HTTP API requests
+- OpenSSL: For AES-256 encryption/decryption
 
 ## Development Environment
 
-### Node.js
-- Node.js 14.0.0 or higher
-- npm for package management
-- Built-in crypto module for encryption
-
-### PHP (Legacy)
+### PHP Requirements
 - PHP 7.4.33 or higher
 - MAMP/XAMPP local server environment
 - cURL extension required for API calls
 - OpenSSL extension required for encryption
+- Composer for dependency management
 
 ## API Endpoints
 
