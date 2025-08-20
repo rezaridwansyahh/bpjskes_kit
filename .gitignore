@@ -36,16 +36,18 @@ test_*.php
 
 # Data and output files (exclude docs.txt which is documentation)
 *.log
-decrypted_data.txt
 lz_string_data.txt
 *_data.txt
 *_output.txt
+# Keep decrypted_data.txt as it's useful for analysis
 
 # HTML test files
 *.html
 
 # JavaScript files (unless part of main project)
 *.js
+!bpjstk-client.js
+!example.js
 
 # Backup and temporary files
 *_backup.php
