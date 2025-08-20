@@ -1,0 +1,9 @@
+{
+    "name": "bpjstk/client",
+    "description": "BPJSTK API Client",
+    "require": {
+        "nullpunkt/lz-string-php": "^1.3",
+        "jezevec10/lz-string-php": "^1.2",
+        "netom/lz-string-php": "^1.3"
+    }
+}

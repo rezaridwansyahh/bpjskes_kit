@@ -1,0 +1,74 @@
+# Composer
+vendor/
+composer.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# PHP
+*.log
+*.tmp
+*.cache
+
+# Test and debug files
+*_test*.php
+*_debug*.php
+debug_*.php
+test_*.php
+
+# Data and output files (exclude docs.txt which is documentation)
+*.log
+decrypted_data.txt
+lz_string_data.txt
+*_data.txt
+*_output.txt
+
+# HTML test files
+*.html
+
+# JavaScript files (unless part of main project)
+*.js
+
+# Backup and temporary files
+*_backup.php
+*_old.php
+*_temp.php
+*.bak
+*.orig
+
+# MAMP/XAMPP specific
+.htaccess
+
+# Keep main implementation and core files
+# Exclude test and debug versions but keep BPJSTK_complete.php as main implementation
+BPJSTK_debug.php
+BPJSTK_fixed.php
+BPJSTK_new.php
+BPJSTK_success.php
+BPJSTK_working.php
+
+# Keep these files:
+# BPJSTK_complete.php (main implementation) 
+# BPJSTK.php (original version)
+# bpjs_tk_kit/ (utility functions)
+# composer.json (dependencies)
+# docs.txt (API documentation)
+# CLAUDE.md (project documentation)

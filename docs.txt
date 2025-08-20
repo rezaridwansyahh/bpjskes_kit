@@ -1,0 +1,68 @@
+Nama Fitur:	Get Hasil Padanan ASN	Keterangan
+URL	https://apijkn-dev.bpjs-kesehatan.go.id/wskemdikbud/Services/pesertaasn/read/page/{page}/limit/{limit}/unorid/{unorid}	Development
+		Production
+ConsumerID	1171	Development
+ConsumerSecret	9g7gcvw1fS	Development
+ConsumerID		Production
+ConsumerSecret		Production
+Method:	GET	
+Body:		
+Response:	"{
+    ""response"": ""FOWV8MXeP7Y5c8QnY3erY1HGhNWGsVEhyWNrj8nmbaEOFunBfLX6xVDut8tqkz6cE43+GsTUKSbUEVj5SAw3lNQ8UDlT2VYi52FCRndCImzb7SP1sTBHvXd0C8KQyVseBdS12ik7+FGKam5wSz7TrHKOKMd7kN8vWZBxvEcd0vUaVYBm+wxJG1wQ5PJ+o7yYxUFoUZpYqHvCPzlrFsC9jsA2ReqRZeZHKPb9yFinpQXOJK+L1Pe6SZGRvAjBrCxEweeA48/7SGhsiYszl+416ikIVcM0d9lIXczZ/VNX5z+XpIK+5rCFgz7TpF8t6yJ+psMRELgB1o30k5vzDf02AMCfYDKNbd452RZTwfiNGihsr+pzTKrWWJL0T0Vtyq43Rse7LJlryujzQuxty1zYuWr44+KFtGU8U9quhVGO+olLHMnq6HoTbdqnernudj/MZfM2Rj6Fnjrm7mw1Mzd0JCcwF1IpiplUN+ywVhumyc5zdl/TMbAoWLXTztYmZWYiUAjpgIbe0Ca7QxoX8nmqMvpPTdG7vvYoLPtgv2len/AQ1iBvWrSZxJ2dDwK13TB0ZsFt93zGu4z07evgAul3ag=="",
+    ""metaData"": {
+        ""code"": 200,
+        ""message"": ""Ok""
+    }
+}
+
+Decrypted:
+{
+  ""list"": [
+    {
+      ""nik"": ""3515************"",
+      ""nama_pegawai"": ""A BU** PR******"",
+      ""tempat_tanggal_lahir"": ""SRAGEN / 1959-xx-xx"",
+      ""nomor_telepon"": ""081235xxxxxxx"",
+      ""email"": ""abudip59@gmail.com"",
+      ""unit_kerja"": ""Universitas Airlangga - PERGURUAN TINGGI NEGERI"",
+      ""jabatan"": ""Lektor"",
+      ""jenis_jabatan"": ""Fungsional"",
+      ""golongan"": ""III/d"",
+      ""status_kepegawaian"": ""PNS"",
+      ""unor_id"": ""9CB6A40FAED53E8AE050640A2A0313C3"",
+      ""unor_induk_id"": """",
+      ""status_peserta"": ""Aktif"",
+      ""segmen_peserta"": ""PPU PN""
+    }
+  ]
+}"	"Response dalam bentuk compres dan terenkripsi.
+
+Kompresi menggunakan metode : Lz-string
+
+Enkripsi menggunakan metode : AES 256 & SHA256
+key enkripsi: concat(consid+consecret+timestamp)
+
+Langkah proses data response: 
+1. Dekripsi - AES 256 & SHA256
+2. Dekompresi - Lz-string (decompressFromEncodedURIComponent)"
+Header:	"X-cons-id: 1171
+X-timestamp: 1736925648
+X-signature: 2zP/4lAgESaHb21BWKULgIZsujTNxfmbwFOqXRajiLw=
+user_key: 95fbb45a93ef7a55a4ed1ef281de2b49"	"SIGNATURE
+
+consumerID : 1234
+consumerSecret : pwd
+timestamp : 433223232
+variabel1 : consumerID&timestamp
+variabel1 : 1234&433223232
+
+Metode signature yang digunakan adalah menggunakan HMAC-SHA256, dimana paramater saat generate signature dibutuhkan parameter message dan key.
+Berikut contoh hasil generate HMAC-SHA256
+message : aaa
+key : bbb
+hasil generate HMAC-SHA256 : 20BKS3PWnD3XU4JbSSZvVlGi2WWnDa8Sv9uHJ+wsELA=
+Diatas adalah hasil generate dari server BPJS Kesehatan
+Signature : HMAC-256(value : key)
+value : variabel1
+key : consumerSecret
+Signature : HMAC-256(variabel1 : consumerSecret)"
