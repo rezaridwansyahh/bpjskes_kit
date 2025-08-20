@@ -5,7 +5,7 @@
  */
 
 // Suppress PHP deprecation warnings from the LZ-String library
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+error_reporting(0);
 
 // Use the partner's working LZ-String library
 require_once __DIR__ . '/bpjs_tk_kit/vendor/autoload.php';
@@ -85,6 +85,14 @@ class BPJSTKClient {
             'user_key: ' . $this->userKey
         ];
         
+        // Print request headers
+        echo "\n=== REQUEST HEADERS ===\n";
+        foreach ($headers as $header) {
+            echo $header . "\n";
+        }
+        echo "URL: " . $this->baseURL . $endpoint . "\n";
+        echo "========================\n";
+        
         // Make API call
         $ch = curl_init();
         curl_setopt_array($ch, [
@@ -144,6 +152,11 @@ class BPJSTKClient {
                 // Step 3: Parse as JSON
                 $finalData = json_decode($decompressed, true);
                 if ($finalData !== null) {
+                    // Print decoded response
+                    echo "\n=== DECODED RESPONSE ===\n";
+                    echo json_encode($finalData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
+                    echo "========================\n\n";
+                    
                     return [
                         'success' => true,
                         'code' => $responseData['metaData']['code'] ?? 200,
@@ -216,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || php_sapi_name() === 'cli') {
         $result = $client->getPesertaASN(1, 1, '9CB6A40FAED53E8AE050640A2A0313C3');
         
         if ($result['success']) {
-            echo "✅ Success: " . $result['message'] . "\n";
+            echo "Success: " . $result['message'] . "\n";
             echo "Records found: " . count($result['data']['list']) . "\n";
             
             if (!empty($result['data']['list'])) {
@@ -229,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || php_sapi_name() === 'cli') {
                 echo "- Status: " . $record['status_peserta'] . "\n";
             }
         } else {
-            echo "❌ Error: " . $result['error'] . "\n";
+            echo "Error: " . $result['error'] . "\n";
         }
         
         echo "\n" . str_repeat("-", 50) . "\n\n";
@@ -239,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || php_sapi_name() === 'cli') {
         $records = $client->getASNRecords(1, 2, '9CB6A40FAED53E8AE050640A2A0313C3');
         
         if (!empty($records)) {
-            echo "✅ Found " . count($records) . " records\n";
+            echo "Found " . count($records) . " records\n";
             foreach ($records as $index => $record) {
                 echo "\nRecord " . ($index + 1) . ":\n";
                 echo "  Name: " . $record['nama_pegawai'] . "\n";
@@ -247,13 +260,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' || php_sapi_name() === 'cli') {
                 echo "  Status: " . $record['status_peserta'] . "\n";
             }
         } else {
-            echo "❌ No records found\n";
+            echo "No records found\n";
         }
         
     } catch (Exception $e) {
-        echo "💥 Exception: " . $e->getMessage() . "\n";
+        echo "Exception: " . $e->getMessage() . "\n";
     }
     
-    echo "\n🎉 BPJSTK API Client is working perfectly!\n";
+    echo "BPJSTK API Client is working perfectly!\n";
 }
 ?>
