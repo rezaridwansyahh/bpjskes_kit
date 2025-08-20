@@ -66,22 +66,69 @@ class BPJSTKClient {
     }
     
     /**
-     * Decompress LZ-String data using proper library
+     * Decompress LZ-String data using proper library with fallback handling
      */
     private function decompressLZString($input) {
         if (empty($input)) return '';
         
         try {
-            return LZString::decompressFromEncodedURIComponent($input);
+            // Try all available LZ-String decompression methods
+            $methods = [
+                'decompressFromEncodedURIComponent',
+                'decompressFromUTF16', 
+                'decompressFromBase64',
+                'decompress'
+            ];
+            
+            foreach ($methods as $method) {
+                if (method_exists('LZCompressor\LZString', $method)) {
+                    $result = LZString::$method($input);
+                    
+                    // Check if we got a meaningful result
+                    if ($result !== null && $result !== false && is_string($result) && strlen($result) > 5) {
+                        // Verify it's valid JSON or at least looks like data
+                        $json = json_decode($result, true);
+                        if ($json !== null) {
+                            return $result; // Success! Return the decompressed JSON
+                        }
+                        
+                        // If not JSON but substantial content, might still be valid
+                        if (strlen($result) > 50) {
+                            return $result;
+                        }
+                    }
+                }
+            }
+            
+            // If all LZ-String methods fail, the data might already be decompressed
+            // or in a different format. Let's check if it's already JSON
+            $json = json_decode($input, true);
+            if ($json !== null) {
+                return $input; // It's already valid JSON
+            }
+            
+            // Try base64 decode as another fallback
+            $base64Decoded = base64_decode($input, true);
+            if ($base64Decoded !== false) {
+                $json = json_decode($base64Decoded, true);
+                if ($json !== null) {
+                    return $base64Decoded;
+                }
+            }
+            
+            // Return input as-is if nothing works
+            return $input;
+            
         } catch (Exception $e) {
-            throw new Exception('LZ-String decompression failed: ' . $e->getMessage());
+            // If decompression fails, return the input as-is
+            return $input;
         }
     }
     
     /**
-     * Make API request to BPJSTK endpoint
+     * Make API request to BPJSTK endpoint and return clean JSON response
      */
-    public function makeRequest($endpoint, $method = 'GET', $data = []) {
+    public function makeRequest($endpoint, $method = 'GET', $data = [], $debug = false) {
         $timestamp = time();
         $signature = $this->generateSignature($timestamp);
         
@@ -105,6 +152,7 @@ class BPJSTKClient {
         if ($method === 'POST' && !empty($data)) {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            $headers[] = 'Content-Type: application/json';
         }
         
         $response = curl_exec($ch);
@@ -113,69 +161,178 @@ class BPJSTKClient {
         curl_close($ch);
         
         if ($error) {
-            throw new Exception('cURL Error: ' . $error);
+            return [
+                'success' => false,
+                'error' => 'cURL Error: ' . $error,
+                'code' => 0
+            ];
+        }
+        
+        if ($httpCode !== 200) {
+            return [
+                'success' => false,
+                'error' => 'HTTP Error: ' . $httpCode,
+                'code' => $httpCode
+            ];
         }
         
         $responseData = json_decode($response, true);
         if (!$responseData) {
-            throw new Exception('Invalid JSON response');
+            return [
+                'success' => false,
+                'error' => 'Invalid JSON response from server',
+                'code' => $httpCode
+            ];
         }
         
         // Process encrypted response
         if (isset($responseData['response']) && is_string($responseData['response'])) {
-            $responseData['_original_response'] = $responseData['response'];
-            
             try {
-                echo "Processing encrypted response...\n";
-                echo "Timestamp: {$timestamp}\n";
-                echo "Encrypted data length: " . strlen($responseData['response']) . " characters\n";
+                if ($debug) {
+                    echo "Processing encrypted response...\n";
+                    echo "Timestamp: {$timestamp}\n";
+                    echo "Encrypted data length: " . strlen($responseData['response']) . " characters\n";
+                }
                 
                 // Step 1: Decrypt AES
                 $encryptionKey = $this->generateEncryptionKey($timestamp);
                 $decrypted = $this->decryptResponse($responseData['response'], $encryptionKey);
-                echo "✓ AES decryption successful (" . strlen($decrypted) . " bytes)\n";
                 
-                // Save decrypted data for analysis
-                $responseData['_decrypted_raw'] = $decrypted;
-                
-                // Step 2: Attempt LZ-String decompression
-                $decompressed = $this->decompressLZString($decrypted);
-                echo "✓ LZ-String decompression: " . strlen($decompressed) . " chars\n";
-                
-                if ($decompressed !== $decrypted) {
-                    echo "✓ Data was successfully decompressed\n";
-                } else {
-                    echo "⚠ Data unchanged - may not be LZ-String compressed\n";
+                if ($debug) {
+                    echo "✓ AES decryption successful (" . strlen($decrypted) . " bytes)\n";
                 }
                 
-                // Step 3: Try to parse as JSON
-                $finalData = json_decode($decompressed, true);
+                // Step 2: LZ-String decompression
+                if ($debug) {
+                    echo "Decrypted data (first 100 chars): " . substr($decrypted, 0, 100) . "\n";
+                    echo "Decrypted data (last 50 chars): " . substr($decrypted, -50) . "\n";
+                }
+                
+                $decompressed = $this->decompressLZString($decrypted);
+                
+                if ($debug) {
+                    echo "✓ LZ-String decompression: " . strlen($decompressed) . " chars\n";
+                    if ($decompressed !== $decrypted) {
+                        echo "✓ Data was decompressed successfully\n";
+                        echo "Decompressed (first 200 chars): " . substr($decompressed, 0, 200) . "\n";
+                    } else {
+                        echo "⚠ Data unchanged - treating as already decompressed\n";
+                    }
+                }
+                
+                // Step 3: Parse JSON - try multiple approaches
+                $finalData = null;
+                $processedWith = '';
+                
+                // Try 1: Parse decompressed data as JSON
+                if (strlen($decompressed) > 5) {
+                    $finalData = json_decode($decompressed, true);
+                    if ($finalData !== null) {
+                        $processedWith = 'decompressed data';
+                        if ($debug) echo "✓ JSON parsing successful with decompressed data\n";
+                    }
+                }
+                
+                // Try 2: If decompression failed or didn't give JSON, try original decrypted data
+                if ($finalData === null) {
+                    $finalData = json_decode($decrypted, true);
+                    if ($finalData !== null) {
+                        $processedWith = 'original decrypted data';
+                        if ($debug) echo "✓ JSON parsing successful with original decrypted data\n";
+                    }
+                }
+                
+                // Try 3: Clean the data and try again
+                if ($finalData === null) {
+                    $dataToClean = strlen($decompressed) > 5 ? $decompressed : $decrypted;
+                    $cleanData = trim($dataToClean);
+                    $cleanData = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $cleanData);
+                    $finalData = json_decode($cleanData, true);
+                    if ($finalData !== null) {
+                        $processedWith = 'cleaned data';
+                        if ($debug) echo "✓ JSON parsing successful with cleaned data\n";
+                    }
+                }
+                
                 if ($finalData !== null) {
-                    $responseData['response'] = $finalData;
-                    $responseData['_processing_status'] = 'fully_processed';
-                    echo "✓ JSON parsing successful\n";
+                    return [
+                        'success' => true,
+                        'code' => $responseData['metaData']['code'] ?? 200,
+                        'message' => $responseData['metaData']['message'] ?? 'OK',
+                        'data' => $finalData,
+                        'processed_with' => $processedWith
+                    ];
                 } else {
-                    $responseData['response'] = $decompressed;
-                    $responseData['_processing_status'] = 'decrypted_only';
-                    echo "⚠ Decrypted but not valid JSON\n";
+                    if ($debug) {
+                        echo "⚠ All JSON parsing attempts failed\n";
+                        echo "Final JSON error: " . json_last_error_msg() . "\n";
+                    }
+                    
+                    // Return the best available data for manual processing
+                    $bestData = strlen($decompressed) > 5 ? $decompressed : $decrypted;
+                    
+                    return [
+                        'success' => false,
+                        'error' => 'Could not parse decrypted data as JSON. Data may need manual LZ-String decompression.',
+                        'code' => $responseData['metaData']['code'] ?? 500,
+                        'encrypted_data' => $responseData['response'],
+                        'decrypted_data' => $decrypted,
+                        'decompression_attempt' => $decompressed,
+                        'suggested_action' => 'Try external LZ-String decompression tool or check if the data format has changed'
+                    ];
                 }
                 
             } catch (Exception $e) {
-                echo "✗ Processing failed: " . $e->getMessage() . "\n";
-                $responseData['_error'] = $e->getMessage();
-                $responseData['_processing_status'] = 'failed';
+                if ($debug) {
+                    echo "✗ Processing failed: " . $e->getMessage() . "\n";
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => 'Decryption/Decompression failed: ' . $e->getMessage(),
+                    'code' => $responseData['metaData']['code'] ?? 500
+                ];
             }
         }
         
-        return $responseData;
+        // If response is not encrypted, return as-is
+        return [
+            'success' => true,
+            'code' => $responseData['metaData']['code'] ?? 200,
+            'message' => $responseData['metaData']['message'] ?? 'OK',
+            'data' => $responseData['response'] ?? $responseData
+        ];
     }
     
     /**
      * Get ASN participant data with pagination
      */
-    public function getPesertaASN($page = 1, $limit = 10, $unorid = '') {
+    public function getPesertaASN($page = 1, $limit = 10, $unorid = '', $debug = false) {
         $endpoint = "/wskemdikbud/Services/pesertaasn/read/page/{$page}/limit/{$limit}/unorid/{$unorid}";
-        return $this->makeRequest($endpoint, 'GET');
+        return $this->makeRequest($endpoint, 'GET', [], $debug);
+    }
+    
+    /**
+     * Get clean JSON response for ASN participant data
+     * Returns only the data array on success, or error info on failure
+     */
+    public function getASNData($page = 1, $limit = 10, $unorid = '') {
+        $result = $this->getPesertaASN($page, $limit, $unorid, false);
+        
+        if ($result['success']) {
+            return [
+                'success' => true,
+                'data' => $result['data'],
+                'code' => $result['code'],
+                'message' => $result['message']
+            ];
+        } else {
+            return [
+                'success' => false,
+                'error' => $result['error'],
+                'code' => $result['code']
+            ];
+        }
     }
     
     /**
@@ -202,54 +359,55 @@ class BPJSTKClient {
     }
 }
 
-// Test the implementation
-echo "BPJSTK API Client - Complete Self-Contained Version\n";
-echo "==================================================\n\n";
+/**
+ * Example usage - uncomment to test
+ */
+function testBPJSTKAPI() {
+    echo "BPJSTK API Client - Test\n";
+    echo "========================\n\n";
 
-try {
-    $client = new BPJSTKClient(
-        '1171',                                    // Consumer ID
-        '9g7gcvw1fS',                             // Consumer Secret
-        '95fbb45a93ef7a55a4ed1ef281de2b49'        // User Key
-    );
-    
-    echo "Making API call...\n";
-    $result = $client->getPesertaASN(1, 10, '9CB6A40FAED53E8AE050640A2A0313C3');
-    
-    echo "\n--- API RESPONSE ---\n";
-    echo "HTTP Status: " . ($result['metaData']['code'] ?? 'N/A') . "\n";
-    echo "Message: " . ($result['metaData']['message'] ?? 'N/A') . "\n";
-    echo "Processing Status: " . ($result['_processing_status'] ?? 'unknown') . "\n";
-    
-    if (isset($result['_error'])) {
-        echo "Error: " . $result['_error'] . "\n";
-    }
-    
-    // Analyze the decrypted data
-    if (isset($result['_decrypted_raw'])) {
-        $client->analyzeDecryptedData($result['_decrypted_raw']);
-    }
-    
-    // Show final response
-    if (isset($result['response'])) {
-        echo "\n--- FINAL RESPONSE ---\n";
-        if (is_array($result['response'])) {
-            echo "Response is array with keys: " . implode(', ', array_keys($result['response'])) . "\n";
-            if (isset($result['response']['list'])) {
-                echo "Found list with " . count($result['response']['list']) . " items\n";
+    try {
+        $client = new BPJSTKClient(
+            '1171',                                    // Consumer ID
+            '9g7gcvw1fS',                             // Consumer Secret  
+            '95fbb45a93ef7a55a4ed1ef281de2b49'        // User Key
+        );
+        
+        echo "Making API call...\n";
+        $result = $client->getPesertaASN(1, 10, '9CB6A40FAED53E8AE050640A2A0313C3', true);
+        
+        echo "\n--- API RESPONSE ---\n";
+        echo "Success: " . ($result['success'] ? 'Yes' : 'No') . "\n";
+        echo "Code: " . $result['code'] . "\n";
+        echo "Message: " . ($result['message'] ?? $result['error'] ?? 'N/A') . "\n";
+        
+        if ($result['success'] && isset($result['data'])) {
+            echo "\n--- DATA ---\n";
+            if (isset($result['data']['list'])) {
+                echo "Found " . count($result['data']['list']) . " ASN records\n";
+                
+                foreach ($result['data']['list'] as $index => $record) {
+                    echo "\nRecord " . ($index + 1) . ":\n";
+                    echo "  NIK: " . ($record['nik'] ?? 'N/A') . "\n";
+                    echo "  Nama: " . ($record['nama_pegawai'] ?? 'N/A') . "\n";
+                    echo "  Unit Kerja: " . ($record['unit_kerja'] ?? 'N/A') . "\n";
+                    echo "  Status: " . ($record['status_peserta'] ?? 'N/A') . "\n";
+                }
+            } else {
+                echo "Data structure:\n";
+                print_r($result['data']);
             }
-            print_r($result['response']);
         } else {
-            echo "Response (first 300 chars): " . substr($result['response'], 0, 300) . "...\n";
+            echo "Error: " . ($result['error'] ?? 'Unknown error') . "\n";
+            if (isset($result['raw_data'])) {
+                echo "Raw data (first 200 chars): " . substr($result['raw_data'], 0, 200) . "...\n";
+            }
         }
+        
+    } catch (Exception $e) {
+        echo "Exception: " . $e->getMessage() . "\n";
     }
-    
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
 }
 
-echo "\n--- SUCCESS ---\n";
-echo "✓ BPJSTK API Client is fully functional\n";
-echo "✓ AES decryption working\n";
-echo "✓ LZ-String decompression working\n";
-echo "✓ Ready for production use\n";
+// Uncomment the line below to run the test
+// testBPJSTKAPI();
